@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>images/lock.svg</file>
+        <file>images/unlock.svg</file>
+        <file>images/Barbara1.png</file>
+    </qresource>
+</RCC>
