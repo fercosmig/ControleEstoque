@@ -2,8 +2,6 @@
 #define FM_PRINCIPAL_H
 
 #include <QMainWindow>
-#include "Colaborador.h"
-#include "QSqlDatabase"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,34 +17,33 @@ public:
     fm_principal(QWidget *parent = nullptr);
     ~fm_principal();
 
-    // MINHAS VARIAVEIS PARA O FORMULARIO
-    QIcon cadeado_fechado, cadeado_aberto;
-    QString msgPermissao, msgLogin;
+    // MY VARIABLES
+    QIcon iconLocked, iconUnlocked;
 
-    // MINHAS FUNÇÕES PARA O FORMULARIO
-    void configurar_login(bool valor);
+    // MY METHODS
     void inicializa_fm_principal();
+    void configura_autenticacao();
 
 private slots:
-    void on_pushButton_bloquear_statusbar_clicked();
-
-    void on_pushButton_nova_venda_clicked();
-
-    void on_actionEstoque_triggered();
-
-    void on_actionColaboradores_triggered();
-
-    void on_actionVendas_triggered();
-
-    void on_actionSair_triggered();
-
-    void on_actionSobre_triggered();
-
     void on_pushButton_fechar_clicked();
+
+    void on_pushButton_autenticacao_clicked();
 
     void on_actionFornecedores_triggered();
 
-    void on_actionTipos_de_pagamento_triggered();
+    void on_actionGrupos_triggered();
+
+    void on_actionSobre_triggered();
+
+    void on_actionFormas_pagamento_triggered();
+
+    void on_actionColaboradores_triggered();
+
+    void on_actionProdutos_triggered();
+
+    void on_pushButton_clicked();
+
+    void on_actionVendas_triggered();
 
 private:
     Ui::fm_principal *ui;

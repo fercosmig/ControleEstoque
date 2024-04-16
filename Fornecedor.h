@@ -3,29 +3,63 @@
 
 #include <QString>
 
+/*
+CREATE TABLE tb_fornecedores (
+    id            INTEGER   PRIMARY KEY AUTOINCREMENT,
+    razao_social  TEXT (60) NOT NULL ON CONFLICT ROLLBACK,
+    nome_fantasia TEXT (60) NOT NULL ON CONFLICT ROLLBACK
+);
+*/
+
 class Fornecedor
 {
 private:
     int id;
-    QString razao_social;
-    QString nome_fantasia;
+    QString razaoSocial;
+    QString nomeFantasia;
 
 protected:
 public:
     // CONSTRUCTOR
-
     Fornecedor() {}
 
-    //GETTERS AND SETTERS
-
-    void setId(int id) { this->id = id; }
-    int getId() { return this->id; }
-
-    void setRazaoSocial(QString razao_social) { this->razao_social = razao_social; }
-    QString getRazaoSocial() { return this->razao_social; }
-
-    void setNomeFantasia(QString nome_fantasia) { this->nome_fantasia = nome_fantasia; }
-    QString getNomeFantasia() { return this->nome_fantasia; }
+    // GETTERS AND SETTERS
+    int getId() const;
+    void setId(int newId);
+    QString getRazaoSocial() const;
+    void setRazaoSocial(const QString &newRazaoSocial);
+    QString getNomeFantasia() const;
+    void setNomeFantasia(const QString &newNomeFantasia);
 };
+
+inline int Fornecedor::getId() const
+{
+    return id;
+}
+
+inline void Fornecedor::setId(int newId)
+{
+    id = newId;
+}
+
+inline QString Fornecedor::getRazaoSocial() const
+{
+    return razaoSocial;
+}
+
+inline void Fornecedor::setRazaoSocial(const QString &newRazaoSocial)
+{
+    razaoSocial = newRazaoSocial;
+}
+
+inline QString Fornecedor::getNomeFantasia() const
+{
+    return nomeFantasia;
+}
+
+inline void Fornecedor::setNomeFantasia(const QString &newNomeFantasia)
+{
+    nomeFantasia = newNomeFantasia;
+}
 
 #endif // FORNECEDOR_H

@@ -1,20 +1,22 @@
 #include "fm_principal.h"
-#include <QMessageBox>
-#include "fm_gestao_colaboradores.h"
-#include "fm_gestao_estoque.h"
-#include "fm_gestao_fornecedores.h"
-#include "fm_gestao_tipo_pagamento.h"
-#include "fm_gestao_vendas.h"
-#include "fm_login.h"
-#include "fm_nova_venda.h"
-#include "global_variables.h"
 #include "ui_fm_principal.h"
+
+#include <QMessageBox>
+#include "global.h"
+#include "fm_autenticacao.h"
+#include "fm_fornecedores.h"
+#include "fm_grupos.h"
+#include "fm_forma_pagamento.h"
+#include "fm_colaboradores.h"
+#include "fm_produtos.h"
+#include "fm_vendas_nova.h"
+#include "fm_vendas.h"
 
 fm_principal::fm_principal(QWidget *parent) : QMainWindow(parent), ui(new Ui::fm_principal)
 {
     ui->setupUi(this);
 
-    inicializa_fm_principal();
+    fm_principal::inicializa_fm_principal();
 }
 
 fm_principal::~fm_principal()
@@ -22,168 +24,161 @@ fm_principal::~fm_principal()
     delete ui;
 }
 
-/* ***********************************************************************************
- *
- * MINHAS FUNÇÕES LOCAIS
- *
- * ********************************************************************************* */
+/* ***** ***** ***** ***** *****
+ *  MY METHODS
+ * ***** ***** ***** ***** *****/
 
 void fm_principal::inicializa_fm_principal()
 {
-    global_variables::isLogged = false;
+    global::initializeGlobalVariables();
 
-    QString local_db = qApp->applicationDirPath();
-    QString nome_db = "/db/controle_estoque.db";
-    QString banco = local_db + nome_db;
+    fm_principal::iconLocked.addFile(":/icons/images/lock.png");
+    fm_principal::iconUnlocked.addFile(":/icons/images/unlock.png");
 
-    global_variables::bancoDeDados = QSqlDatabase::addDatabase("QSQLITE");
-    global_variables::bancoDeDados.setDatabaseName(banco);
+    fm_principal::configura_autenticacao();
 
-    msgLogin = "Favor realizar a autenticação no sistema.";
-    msgPermissao = "Desculpe, você não tem permissão para acessar esta funcionalidade.";
-
-    configurar_login(global_variables::isLogged);
+    ui->label_versao->setText("Versão: " + global::version);
 }
 
-void fm_principal::configurar_login(bool valor)
+void fm_principal::configura_autenticacao()
 {
-    cadeado_fechado.addFile(":/icon/images/lock.svg");
-    cadeado_aberto.addFile(":/icon/images/unlock.svg");
+    QString strLabel;
 
-    ui->pushButton_bloquear_statusbar->setText("");
-    ui->statusbar->addWidget(ui->pushButton_bloquear_statusbar);
-    ui->label_dados_statusbar->setText("");
-    ui->statusbar->addWidget(ui->label_dados_statusbar);
+    ui->pushButton_autenticacao->setText("");
 
-    if (valor) {
-
-        QString texto = global_variables::colaboradorLogado.getGrupo().getSigla() + "|" + global_variables::colaboradorLogado.getNome();
-        ui->pushButton_bloquear_statusbar->setIcon(cadeado_aberto);
-        ui->label_dados_statusbar->setText(texto);
-
-    } else
-        ui->pushButton_bloquear_statusbar->setIcon(cadeado_fechado);
-}
-
-/* ***********************************************************************************
- *
- * SLOTS
- *
- * ********************************************************************************* */
-
-void fm_principal::on_pushButton_bloquear_statusbar_clicked()
-{
-    fm_login f_login;
-
-    if (global_variables::isLogged) {
-
-        global_variables::isLogged = false;
-        configurar_login(false);
-
+    if (global::isLogged) {
+        ui->pushButton_autenticacao->setIcon(fm_principal::iconUnlocked);
+        strLabel = global::colaboradorLogado.getGrupo().getSigla();
+        strLabel += " | ";
+        strLabel += global::colaboradorLogado.getNome();
     } else {
-
-        f_login.exec();
-
-        if (global_variables::isLogged)
-
-            configurar_login(true);
-
+        ui->pushButton_autenticacao->setIcon(fm_principal::iconLocked);
+        strLabel = "Autentique-se!";
     }
+
+    ui->label_status_login->setText(strLabel);
+
+    ui->statusbar->addWidget(ui->pushButton_autenticacao);
+    ui->statusbar->addWidget(ui->label_status_login);
 }
 
-void fm_principal::on_pushButton_nova_venda_clicked()
-{
-    if (global_variables::isLogged) {
-
-        fm_nova_venda f_nova_venda;
-        f_nova_venda.exec();
-
-    } else
-        QMessageBox::warning(this,"", msgLogin);
-}
-
-void fm_principal::on_actionEstoque_triggered()
-{
-    if (global_variables::isLogged) {
-
-        if (global_variables::colaboradorLogado.getGrupo().getSigla() == "A") {
-
-            fm_gestao_estoque f_gestao_estoque;
-            f_gestao_estoque.exec();
-
-        } else
-            QMessageBox::warning(this, "", msgPermissao);
-    } else
-        QMessageBox::warning(this, "", msgLogin);
-}
-
-void fm_principal::on_actionColaboradores_triggered()
-{
-    if (global_variables::isLogged) {
-        if (global_variables::colaboradorLogado.getGrupo().getSigla() == "A") {
-
-            fm_gestao_colaboradores f_gestao_colaboradores;
-            f_gestao_colaboradores.exec();
-
-        } else
-            QMessageBox::warning(this, "", msgPermissao);
-    } else
-        QMessageBox::warning(this, "", msgLogin);
-}
-
-void fm_principal::on_actionVendas_triggered()
-{
-    if (global_variables::isLogged) {
-        if (global_variables::colaboradorLogado.getGrupo().getSigla() == "A") {
-
-            fm_gestao_vendas f_gestao_vendas;
-            f_gestao_vendas.exec();
-
-        } else
-            QMessageBox::warning(this, "", msgPermissao);
-    } else
-        QMessageBox::warning(this, "", msgLogin);
-}
-
-void fm_principal::on_actionFornecedores_triggered()
-{
-    if (global_variables::isLogged) {
-        if (global_variables::colaboradorLogado.getGrupo().getSigla() == "A") {
-
-            fm_gestao_fornecedores f_gestao_fornecedores;
-            f_gestao_fornecedores.exec();
-
-        } else
-            QMessageBox::warning(this, "", msgPermissao);
-    } else
-        QMessageBox::warning(this, "", msgLogin);
-}
-
-void fm_principal::on_actionTipos_de_pagamento_triggered()
-{
-    if (global_variables::isLogged) {
-        if (global_variables::colaboradorLogado.getGrupo().getSigla() == "A") {
-
-            fm_gestao_tipo_pagamento f_gestao_tipo_pagamento;
-            f_gestao_tipo_pagamento.exec();
-
-        } else
-            QMessageBox::warning(this, "", msgPermissao);
-    } else
-        QMessageBox::warning(this, "", msgLogin);
-}
-
-void fm_principal::on_actionSobre_triggered()
-{
-    QMessageBox::aboutQt(this);
-}
-
-void fm_principal::on_actionSair_triggered()
-{
-    QApplication::quit();
-}
+/* ***** ***** ***** ***** *****
+ *  SLOTS
+ * ***** ***** ***** ***** *****/
 
 void fm_principal::on_pushButton_fechar_clicked()
 {
     QApplication::quit();
 }
+
+void fm_principal::on_pushButton_autenticacao_clicked()
+{
+    fm_autenticacao f_autenticacao;
+
+    if (global::isLogged)
+        global::isLogged = false;
+    else
+        f_autenticacao.exec();
+
+    fm_principal::configura_autenticacao();
+}
+
+void fm_principal::on_actionFornecedores_triggered()
+{
+    fm_fornecedores f_fornecedores;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_fornecedores.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_actionGrupos_triggered()
+{
+    fm_grupos f_grupos;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_grupos.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_actionSobre_triggered()
+{
+    QString informacoes;
+    informacoes = "Sistema de controle de estoque\n\n";
+    informacoes += "Desenvolvido por Fernando Costa Migliorini\n\n";
+    informacoes += "entre 29/03/2024 e 07/04/2024.\n\n";
+    informacoes +="Desenvolvido em C++ (QtCreator) & SQLITE\n\n";
+    informacoes +="Versão: " + global::version;
+    QMessageBox::information(this, "Controle de EStoque", informacoes);
+}
+
+void fm_principal::on_actionFormas_pagamento_triggered()
+{
+    fm_forma_pagamento f_forma_pagamento;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_forma_pagamento.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_actionColaboradores_triggered()
+{
+    fm_colaboradores f_colaboradores;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_colaboradores.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_actionProdutos_triggered()
+{
+    fm_produtos f_produtos;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_produtos.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_pushButton_clicked()
+{
+    fm_vendas_nova f_vendas_nova;
+
+    if (global::isLogged) {
+            f_vendas_nova.exec();
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+
+void fm_principal::on_actionVendas_triggered()
+{
+    fm_vendas f_vendas;
+
+    if (global::isLogged) {
+        if (global::colaboradorLogado.getGrupo().getSigla() == "A")
+            f_vendas.exec();
+        else
+            QMessageBox::warning(this, "", "Acesso negado!");
+    } else
+        QMessageBox::warning(this, "", "Autentique-se!");
+}
+

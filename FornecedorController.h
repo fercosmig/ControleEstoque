@@ -1,9 +1,7 @@
 #ifndef FORNECEDORCONTROLLER_H
 #define FORNECEDORCONTROLLER_H
 
-#include <QDebug>
 #include <QString>
-#include <QVector>
 #include "Conexao.h"
 #include "Fornecedor.h"
 
@@ -11,225 +9,206 @@ class FornecedorController
 {
 private:
     QString sql;
-    Conexao conn;
     QSqlQuery query;
+    Conexao conn;
 
 protected:
 public:
     // CONSTRUCTOR
-
     FornecedorController() {}
 
-    // METHODS CRUD = create, read, update, and delete
+    // METHODS CRUD - CREATE / READ / UPDATE / DELETE
+    Fornecedor insere(Fornecedor fornecedor);
+    QVector<Fornecedor> buscaTodos();
+    QVector<Fornecedor> buscaPorRazaoSocialNomeFantasia(Fornecedor fornecedor);
+    Fornecedor buscaPorId(Fornecedor fornecedor);
+    bool altera(Fornecedor fornecedor);
+    bool remove(Fornecedor fornecedor);
+};
 
-    bool insere(Fornecedor fornecedor)
-    {
-        sql = "INSERT INTO tb_fornecedores (razao_social, nome_fantasia) VALUES (:razao_social, "
-              ":nome_fantasia)";
+inline Fornecedor FornecedorController::insere(Fornecedor fornecedor)
+{
+    sql = "INSERT INTO tb_fornecedores ";
+    sql +="( razao_social, nome_fantasia ) ";
+    sql +="VALUES ";
+    sql +="( :razao_social, :nome_fantasia )";
 
-        if (!conn.isOpen())
-            conn.open();
+    if (!conn.isOpen())
+        conn.open();
 
-        bool retorno = false;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":razao_social", fornecedor.getRazaoSocial());
-            query.bindValue(":nome_fantasia", fornecedor.getNomeFantasia());
+    if (conn.isOpen()){
+        query.exec("BEGIN IMMEDIATE TRANSACTION");
 
-            if (query.exec())
-                retorno = true;
-            else {
-                qDebug() << "FornecedorController.insere()";
-                qDebug() << "query.exec: " << query.lastError().text();
-            }
-        }
+        query.prepare(sql);
+        query.bindValue(":razao_social", fornecedor.getRazaoSocial());
+        query.bindValue(":nome_fantasia", fornecedor.getNomeFantasia());
 
-        conn.close();
-        return retorno;
-    }
-
-    QVector<Fornecedor> buscaTodos()
-    {
-        sql = "SELECT id, razao_social, nome_fantasia FROM tb_fornecedores ORDER BY nome_fantasia "
-              "ASC";
-
-        if (!conn.isOpen())
-            conn.open();
-
-        QVector<Fornecedor> listaFornecedores;
-        Fornecedor fornecedor;
-
-        if (conn.isOpen()) {
+        if (query.exec()) {
+            sql = "SELECT id, razao_social, nome_fantasia FROM tb_fornecedores ORDER BY id DESC LIMIT 1";
             query.prepare(sql);
 
             if (query.exec()) {
-                if (query.next()) {
-                    do {
-                        fornecedor.setId(query.record().value("id").toInt());
-                        fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
-                        fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
-                        listaFornecedores.push_back(fornecedor);
-                    } while (query.next());
-                } else
-                    qDebug() << "FornecedorController.buscaTodos: 0 registros.";
-
-            } else {
-                qDebug() << "FornecedorController.buscaTodos()";
-                qDebug() << "query.exec: " << query.lastError().text();
-            }
-        }
-
-        conn.close();
-        return listaFornecedores;
-    }
-
-    Fornecedor buscaPorId(int id)
-    {
-        sql = "SELECT id, razao_social, nome_fantasia FROM tb_fornecedores WHERE id = :id";
-
-        if (!conn.isOpen())
-            conn.open();
-
-        Fornecedor fornecedor;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":id", id);
-
-            if (query.exec()) {
-                if (query.next()) {
+                if (query.next()){
                     fornecedor.setId(query.record().value("id").toInt());
                     fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
                     fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
-                } else
-                    qDebug() << "FornecedorController.buscaPorId: 0 registros";
-            } else {
-                qDebug() << "FornecedorController.buscaPorId()";
-                qDebug() << "query.exec: " << query.lastError().text();
-            }
-        }
+                }
+            } else
+                qDebug() << "FornecedorController::insere(SELECT) " << query.lastError().text();
+        } else
+            qDebug() << "FornecedorController::insere(INSERT) " << query.lastError().text();
 
-        conn.close();
-        return fornecedor;
+        query.exec("COMMIT");
     }
+    conn.close();
+    return fornecedor;
+}
 
-    QVector<Fornecedor> buscaPorNomeFantasia(QString buscar)
-    {
-        sql = "SELECT id, razao_social, nome_fantasia FROM tb_fornecedores WHERE nome_fantasia "
-              "LIKE :nome_fantasia ORDER BY nome_fantasia ASC";
+inline QVector<Fornecedor> FornecedorController::buscaTodos()
+{
+    sql = "SELECT id, razao_social, nome_fantasia ";
+    sql += "FROM tb_fornecedores ";
+    sql += "ORDER BY razao_social ASC";
 
-        if (!conn.isOpen())
-            conn.open();
+    if (!conn.isOpen())
+        conn.open();
 
-        QVector<Fornecedor> listaFornecedores;
-        Fornecedor fornecedor;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":nome_fantasia", "%" + buscar + "%");
+    Fornecedor fornecedor;
+    QVector<Fornecedor> ListaFornecedores;
 
-            if (query.exec()) {
-                if (query.next()) {
-                    do {
-                        fornecedor.setId(query.record().value("id").toInt());
-                        fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
-                        fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
-                        listaFornecedores.push_back(fornecedor);
-                    } while (query.next());
-                } else
-                    qDebug() << "FornecedorController.buscaPorNomeFantasia: 0 registros";
-            } else {
-                qDebug() << "FornecedorController.buscaPorNomeFantasia()";
-                qDebug() << "query.exec: " << query.lastError().text();
+    if (conn.isOpen()){
+        query.prepare(sql);
+
+        if (query.exec()) {
+            if (query.next()) {
+                do {
+                    fornecedor.setId(query.record().value("id").toInt());
+                    fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
+                    fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
+
+                    ListaFornecedores.push_back(fornecedor);
+                } while (query.next());
             }
-        }
-
-        conn.close();
-        return listaFornecedores;
+        } else
+            qDebug() << "FornecedorController::buscaTodos() " << query.lastError().text();
     }
+    conn.close();
+    return ListaFornecedores;
+}
 
-    QVector<Fornecedor> buscaPorRazaoSocial(QString buscar)
-    {
-        sql = "SELECT id, razao_social, nome_fantasia FROM tb_fornecedores WHERE razao_social LIKE "
-              ":razao_social ORDER BY nome_fantasia ASC";
+inline QVector<Fornecedor> FornecedorController::buscaPorRazaoSocialNomeFantasia(Fornecedor fornecedor)
+{
+    sql = "SELECT id, razao_social, nome_fantasia ";
+    sql += "FROM tb_fornecedores ";
+    sql += "WHERE ";
+    sql += "razao_social LIKE :razao_social OR ";
+    sql += "nome_fantasia LIKE :nome_fantasia ";
+    sql += "ORDER BY razao_social ASC";
 
-        if (!conn.isOpen())
-            conn.open();
+    if (!conn.isOpen())
+        conn.open();
 
-        QVector<Fornecedor> listaFornecedores;
-        Fornecedor fornecedor;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":razao_social", "%" + buscar + "%");
+    QVector<Fornecedor> ListaFornecedores;
 
-            if (query.exec()) {
-                if (query.next()) {
-                    do {
-                        fornecedor.setId(query.record().value("id").toInt());
-                        fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
-                        fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
-                        listaFornecedores.push_back(fornecedor);
-                    } while (query.next());
-                } else
-                    qDebug() << "FornecedorController.buscaPorRazaoSocial: 0 registros";
-            } else {
-                qDebug() << "FornecedorController.buscaPorRazaoSocial()";
-                qDebug() << "query.exec: " << query.lastError().text();
+    if (conn.isOpen()){
+        query.prepare(sql);
+        query.bindValue(":razao_social", "%" + fornecedor.getRazaoSocial() + "%");
+        query.bindValue(":nome_fantasia", "%" + fornecedor.getNomeFantasia() + "%");
+
+        if (query.exec()) {
+            if (query.next()) {
+                do {
+                    fornecedor.setId(query.record().value("id").toInt());
+                    fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
+                    fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
+
+                    ListaFornecedores.push_back(fornecedor);
+                } while (query.next());
             }
-        }
-
-        conn.close();
-        return listaFornecedores;
+        } else
+            qDebug() << "FornecedorController::buscaPorRazaoSocialNomeFantasia() " << query.lastError().text();
     }
+    conn.close();
+    return ListaFornecedores;
+}
 
-    bool altera(Fornecedor fornecedor)
-    {
-        sql = "UPDATE tb_fornecedores SET razao_social = :razao_social, nome_fantasia = "
-              ":nome_fantasia WHERE id = :id";
+inline Fornecedor FornecedorController::buscaPorId(Fornecedor fornecedor)
+{
+    sql = "SELECT id, razao_social, nome_fantasia ";
+    sql += "FROM tb_fornecedores ";
+    sql += "WHERE ";
+    sql += "id = :id";
 
-        if (!conn.isOpen())
-            conn.open();
+    if (!conn.isOpen())
+        conn.open();
 
-        bool retorno = false;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":razao_social", fornecedor.getRazaoSocial());
-            query.bindValue(":nome_fantasia", fornecedor.getNomeFantasia());
-            query.bindValue(":id", fornecedor.getId());
+    if (conn.isOpen()){
+        query.prepare(sql);
+        query.bindValue(":id", fornecedor.getId());
 
-            if (query.exec())
-                retorno = true;
-            else {
-                qDebug() << "FornecedorController.altera()";
-                qDebug() << "query.exec: " << query.lastError().text();
+        if (query.exec()) {
+            if (query.next()) {
+                fornecedor.setId(query.record().value("id").toInt());
+                fornecedor.setRazaoSocial(query.record().value("razao_social").toString());
+                fornecedor.setNomeFantasia(query.record().value("nome_fantasia").toString());
             }
-        }
-
-        conn.close();
-        return retorno;
+        } else
+            qDebug() << "FornecedorController::buscaPorId() " << query.lastError().text();
     }
+    conn.close();
+    return fornecedor;
+}
 
-    bool remove(int id)
-    {
-        sql = "DELETE FROM tb_fornecedores WHERE id = :id";
+inline bool FornecedorController::altera(Fornecedor fornecedor)
+{
+    sql = "UPDATE tb_fornecedores SET ";
+    sql += "razao_social = :razao_social, ";
+    sql += "nome_fantasia = :nome_fantasia ";
+    sql += "WHERE ";
+    sql += "id = :id";
 
-        if (!conn.isOpen())
-            conn.open();
+    if (!conn.isOpen())
+        conn.open();
 
-        bool retorno = false;
-        if (conn.isOpen()) {
-            query.prepare(sql);
-            query.bindValue(":id", id);
+    bool retorno = false;
 
-            if (query.exec())
-                retorno = true;
-            else {
-                qDebug() << "FornecedorController.remove()";
-                qDebug() << "query.exec: " << query.lastError().text();
-            }
-        }
+    if (conn.isOpen()){
+        query.prepare(sql);
+        query.bindValue(":razao_social", fornecedor.getRazaoSocial());
+        query.bindValue(":nome_fantasia", fornecedor.getNomeFantasia());
+        query.bindValue(":id", fornecedor.getId());
 
-        conn.close();
-        return retorno;
+        if (query.exec())
+            retorno = true;
+        else
+            qDebug() << "FornecedorController::altera() " << query.lastError().text();
     }
-};
+    conn.close();
+    return retorno;
+}
+
+inline bool FornecedorController::remove(Fornecedor fornecedor)
+{
+    sql = "DELETE FROM tb_fornecedores ";
+    sql += "WHERE ";
+    sql += "id = :id";
+
+    if (!conn.isOpen())
+        conn.open();
+
+    bool retorno = false;
+
+    if (conn.isOpen()){
+        query.prepare(sql);
+        query.bindValue(":id", fornecedor.getId());
+
+        if (query.exec())
+            retorno = true;
+        else
+            qDebug() << "FornecedorController::remove() " << query.lastError().text();
+    }
+    conn.close();
+    return retorno;
+}
 
 #endif // FORNECEDORCONTROLLER_H
